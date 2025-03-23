@@ -1,6 +1,11 @@
 import json
 import re
 import ast
+
+import networkx as nx
+from matplotlib import pyplot as plt
+from plantuml import PlantUML
+import os
 import time
 import difflib
 import copy
@@ -136,4 +141,86 @@ def construct_system_message(requirement, role, team=''):
                     role
                 
     return system_message
+
+
+def generate_uml_from_plantuml(plantuml_code: str, output_dir='./graph', output_filename='uml_image.png'):
+    """
+    通过 PlantUML 代码生成 UML 图并保存到指定目录
+    :param plantuml_code: PlantUML 代码
+    :param output_dir: 生成的图像存储目录
+    :param output_filename: 生成图像的文件名
+    :return: 生成的图像文件路径
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    plantuml_file = os.path.join(output_dir, 'temp_plantuml.puml')
+    with open(plantuml_file, 'w') as file:
+        file.write(plantuml_code)
+
+    plantuml = PlantUML(url='http://www.plantuml.com/plantuml/img/')
+    output_file_path = os.path.join(output_dir, output_filename)
+    plantuml.processes_file(plantuml_file, output_file_path)
+
+    os.remove(plantuml_file)
+
+    return output_file_path
+
+def generate_knowledge_graph(data: dict, output_dir='./graph', output_filename='knowledge_graph.png'):
+    """
+    根据输入的数据生成知识图谱，并保存到指定目录
+    :param data: 包含实体和关系的字典，格式为 {实体: [关系1, 关系2, ...]}
+    :param output_dir: 图像存储目录
+    :param output_filename: 生成图像的文件名
+    :return: 生成的图像文件路径
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    G = nx.DiGraph()
+
+    for entity, relationships in data.items():
+        for relation in relationships:
+            G.add_edge(entity, relation)
+
+    plt.figure(figsize=(12, 12))
+    pos = nx.spring_layout(G)  # 使用 spring 布局
+    nx.draw(G, pos, with_labels=True, node_size=3000, node_color='skyblue', font_size=10, font_weight='bold', arrows=True)
+
+    output_file_path = os.path.join(output_dir, output_filename)
+    plt.savefig(output_file_path, format='PNG')
+    plt.close()
+
+    return output_file_path
+
+
+def generate_uml_diagram(artifacts):
+    """生成PlantUML流程图"""
+    uml = [
+        "@startuml",
+        "left to right direction",
+        "skinparam packageStyle rectangle"
+    ]
+
+    # 添加事件
+    for event in artifacts['events']:
+        uml.append(f"rectangle \"{event['name']}\" as {event['id']}")
+
+    # 添加流程关系
+    for flow in artifacts['process_flows']:
+        uml.append(f"{flow['source']} --> {flow['target']} : {flow['trigger']}")
+
+    uml.append("@enduml")
+    return '\n'.join(uml)
+
+def parse_user_scenarios(scenario_data: Dict) -> str:
+    """将用户场景数据转换为自然语言描述"""
+    scenarios = []
+    for idx, s in enumerate(scenario_data['scenarios'], 1):
+        scenarios.append(
+            f"{idx}. 场景名称：{s['name']}\n"
+            f"   参与角色：{', '.join(s['actors'])}\n"
+            f"   业务规则：{'; '.join(s.get('business_rules', []))}"
+        )
+    return "\n".join(scenarios)
     
