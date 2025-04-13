@@ -1,100 +1,127 @@
-from roles.domain_expert import DomainExpert #TODO: 实现各个角色类
+from typing import Dict, List, Tuple
+import json
 
-class Session(object):
-    def __init__(self, team_prompt, domain_expert_prompt, event_identifier_prompt,
-                 aggregate_designer_prompt, process_modeler_prompt, model_validator_prompt,
-                 business_scenario, model='gpt-4', max_round=3, validation=False):
+from roles.architects import Architect
+from roles.business_personal import BusinessPersonnel
+from roles.developers import Developer
+from roles.domain_experts import DomainExpert
 
-        self.modeling_artifacts = {
-            'ubiquitous_language': [],
-            'events': [],
-            'aggregates': [],
-            'process_flows': []
+from roles.requirements_analysts import RequirementsAnalyst
+from roles.testers import Tester
+
+
+class Session:
+    def __init__(self, business_scenario: str, model: str = "gpt-4", max_round: int = 7, validation: bool = True):
+        self.business_scenario = business_scenario
+        self.model = model
+        self.max_round = max_round
+        self.validation = validation
+        self.agents = self._initialize_agents()
+        self.history = []
+
+    def _initialize_agents(self) -> Dict[str, object]:
+        """初始化所有角色Agent"""
+        shared_args = {
+            "system_description": self.business_scenario,
+            "model": self.model
+        }
+        return {
+            "architect": Architect(** shared_args),
+            "business_personal": BusinessPersonnel(** shared_args),
+            "developer": Developer(** shared_args),
+            "domain_expert": DomainExpert(** shared_args),
+            "requirements_analyst": RequirementsAnalyst(** shared_args),
+            "tester": Tester(** shared_args)
         }
 
-        # 初始化各角色处理器
-        self.domain_expert = DomainExpert(
-            team_prompt=team_prompt,
-            role_prompt=domain_expert_prompt,
-            scenario=business_scenario,
-            model=model
-        )
+        def _get_round_participants(self, round_num: int) -> List[Tuple[str, str]]:
+            """定义每轮参与角色及其执行顺序和输入来源"""
+            round_config = {
+                1: [("business_personal", None)],  # (角色, 输入来源)
+                2: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
+                3: [("domain_expert",
+                     ["business_personal", "requirements_analyst", "architect", "developer", "tester"])],
+                4: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
+                5: [("domain_expert",
+                     ["business_personal", "requirements_analyst", "architect", "developer", "tester"])],
+                6: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
+                7: [(
+                    "domain_expert", ["business_personal", "requirements_analyst", "architect", "developer", "tester"])]
+            }
+            return round_config.get(round_num, [])
 
-        self.event_identifier = EventIdentifier(
-            team_prompt=team_prompt,
-            role_prompt=event_identifier_prompt,
-            model=model
-        )
+        def _gather_inputs(self, sources: List[str]) -> Dict[str, str]:
+            """从指定角色收集上一轮输出"""
+            return {role: self.history[-1][role] for role in sources if role in self.history[-1]}
 
-        self.aggregate_designer = AggregateDesigner(
-            team_prompt=team_prompt,
-            role_prompt=aggregate_designer_prompt,
-            model=model
-        )
+        def _validate_round_output(self, round_num: int, outputs: Dict[str, str]) -> bool:
+            """执行轮次输出验证（示例）"""
+            if not self.validation:
+                return True
 
-        self.process_modeler = ProcessModeler(
-            team_prompt=team_prompt,
-            role_prompt=process_modeler_prompt,
-            model=model
-        )
+            if round_num == 1:
+                return all("Agree" in output for output in outputs.values())
+            elif round_num == 3:
+                return any("Hotpots" in output for output in outputs.values())
+            return True
 
-        self.validator = ModelValidator(
-            team_prompt=team_prompt,
-            role_prompt=model_validator_prompt,
-            model=model
-        )
+        def run_event_storming(self) -> Tuple[Dict[str, List], List[Dict]]:
+            """执行完整的事件风暴流程"""
+            for round_num in range(1, self.max_round + 1):
+                print(f"\n=== Round {round_num} ===")
+                round_outputs = {}
 
-    def run_event_storming(self):
-        # 领域知识提取阶段
-        domain_knowledge = self.domain_expert.elicit_knowledge()
-        self._update_artifacts(domain_knowledge)
+                for role, input_source in self._get_round_participants(round_num):
+                    agent = self.agents[role]
 
-        # 事件识别迭代阶段
-        for _ in range(self.max_round):
-            events = self.event_identifier.identify_events(
-                context=self.modeling_artifacts
-            )
-            self._update_artifacts(events)
+                    # 准备输入上下文
+                    context = self._gather_inputs(input_source) if isinstance(input_source, list) else (
+                        self.history[-1][input_source] if input_source else None
+                    )
 
-            # 聚合设计阶段
-            aggregates = self.aggregate_designer.design_aggregates(
-                current_events=events
-            )
-            self._update_artifacts(aggregates)
+                    # 执行角色交互
+                    try:
+                        response = agent.participate_round(round_num, context)
+                        round_outputs[role] = response
+                        print(f"[{role[:10].ljust(10)}]: {response[:80]}...")
+                    except Exception as e:
+                        print(f"{role} 执行失败: {str(e)}")
+                        round_outputs[role] = f"ERROR: {str(e)}"
 
-            # 流程建模阶段
-            process_flows = self.process_modeler.model_process(
-                events=events,
-                aggregates=aggregates
-            )
-            self._update_artifacts(process_flows)
+                # 验证并保存结果
+                if not self._validate_round_output(round_num, round_outputs):
+                    raise RuntimeError(f"Round {round_num} 验证失败")
+                self.history.append(round_outputs)
 
-            # 模型验证检查点
-            validation = self.validator.validate_model(
-                artifacts=self.modeling_artifacts
-            )
-            if validation['all_passed']:
-                break
-            else:
-                self._handle_validation_issues(validation)
+            return self._compile_artifacts(), self.history
 
-        return self.modeling_artifacts, self.session_history
+        def _compile_artifacts(self) -> Dict[str, List]:
+            """编译最终建模产物"""
+            last_round = self.history[-1]
+            expert_output = last_round["domain_expert"]
 
-    def _update_artifacts(self, new_artifacts):
-        # 实现模型产物的版本化合并
-        if 'ubiquitous_language' in new_artifacts:
-            self.modeling_artifacts['ubiquitous_language'] = merge_language(
-                existing=self.modeling_artifacts['ubiquitous_language'],
-                new=new_artifacts['ubiquitous_language']
-            )
+            return {
+                "domain_events": self._extract_structured_data(expert_output, "Domain Events"),
+                "commands": self._extract_structured_data(expert_output, "Commands"),
+                "policies": self._extract_structured_data(expert_output, "Policies"),
+                "hotspots": self._extract_structured_data(expert_output, "Hotpots"),
+                "test_cases": self.agents["tester"].test_cases,
+                "user_stories": self.agents["requirements_analyst"].user_stories
+            }
 
-        # 类似处理其他产物类型（事件/聚合/流程）
-        # ...
+        def _extract_structured_data(self, text: str, section: str) -> List[Dict]:
+            """从文本输出中提取结构化数据"""
+            if section not in text:
+                return []
 
-    def _handle_validation_issues(self, report):
-        # 根据验证结果触发特定修正流程
-        for issue in report['issues']:
-            if issue['type'] == 'EVENT_MISSING_COMMAND':
-                self._trigger_event_repair(issue['details'])
-            elif issue['type'] == 'AGGREGATE_BOUNDARY_VIOLATION':
-                self._trigger_aggregate_redesign(issue['details'])
+            items = []
+            section_text = text.split(section + ":")[1].split("\n\n")[0]
+            for line in section_text.split('\n'):
+                if line.strip() and not line.strip().startswith("..."):
+                    parts = line.split(':')
+                    if len(parts) > 1:
+                        items.append({
+                            "element": parts[0].strip(),
+                            "rationale": parts[1].strip()
+                        })
+            return items

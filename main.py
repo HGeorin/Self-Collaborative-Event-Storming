@@ -1,12 +1,8 @@
-import os
-import copy
 import json
 import argparse
-import tqdm
 
 from session_es import Session
-from datasets import load_dataset, load_from_disk
-from utils import prompt_split_humaneval, find_method_name, code_split, build_test_method, generate_uml_diagram
+from utils import generate_uml_diagram
 
 parser = argparse.ArgumentParser(description='EventStorming协作建模框架')
 parser.add_argument('--input_file', type=str, default='data/input.jsonl',
@@ -20,35 +16,10 @@ parser.add_argument('--max_round', type=int, default=3,
                    help='每阶段最大协作轮次')
 parser.add_argument('--validation', action='store_true', default=False,
                    help='启用模型验证阶段')
-
-# parser.add_argument('--lang', type=str, default='python')
-# parser.add_argument('--output_path', type=str, default='output.jsonl')
-#
-# parser.add_argument('--signature', action='store_true')
-# parser.add_argument('--max_round', type=int, default=2)
-#
-# parser.add_argument('--max_tokens', type=int, default=512)
-# parser.add_argument('--majority', type=int, default=1)
-# parser.add_argument('--temperature', type=float, default=0.0)
-# parser.add_argument('--top_p', type=float, default=0.95)
-#
-# parser.add_argument('--fail_list', type=list, default=[])
-# parser.add_argument('--append', action='store_true')
-# parser.add_argument('--verbose', action='store_true')
-# parser.add_argument("--timeout", type=float, default=10, help="how many seconds to wait during execution for each test case")
 args = parser.parse_args()
 
 
 if __name__ == '__main__':
-
-    from roles.rule_event_storming_act import (
-        TEAM_COLLAB,
-        DOMAIN_EXPERT,
-        EVENT_IDENTIFIER,
-        AGGREGATE_DESIGNER,
-        PROCESS_MODELER,
-        MODEL_VALIDATOR
-    )
 
     def load_custom_dataset(file_path):
         with open(file_path, 'r') as f:
@@ -69,12 +40,6 @@ if __name__ == '__main__':
 
                 # 初始化建模会话
                 session = Session(
-                    team_prompt = TEAM_COLLAB,
-                    domain_expert_prompt = DOMAIN_EXPERT,
-                    event_identifier_prompt = EVENT_IDENTIFIER,
-                    aggregate_designer_prompt = AGGREGATE_DESIGNER,
-                    process_modeler_prompt = PROCESS_MODELER,
-                    model_validator_prompt = MODEL_VALIDATOR,
                     business_scenario = domain_info,
                     model=args.model,
                     max_round=args.max_round,
