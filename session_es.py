@@ -34,94 +34,94 @@ class Session:
             "tester": Tester(** shared_args)
         }
 
-        def _get_round_participants(self, round_num: int) -> List[Tuple[str, str]]:
-            """定义每轮参与角色及其执行顺序和输入来源"""
-            round_config = {
-                1: [("business_personal", None)],  # (角色, 输入来源)
-                2: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
-                3: [("domain_expert",
-                     ["business_personal", "requirements_analyst", "architect", "developer", "tester"])],
-                4: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
-                5: [("domain_expert",
-                     ["business_personal", "requirements_analyst", "architect", "developer", "tester"])],
-                6: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
-                7: [(
-                    "domain_expert", ["business_personal", "requirements_analyst", "architect", "developer", "tester"])]
-            }
-            return round_config.get(round_num, [])
+    def _get_round_participants(self, round_num: int) -> List[Tuple[str, str]]:
+        """定义每轮参与角色及其执行顺序和输入来源"""
+        round_config = {
+            1: [("business_personal", None)],  # (角色, 输入来源)
+            2: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
+            3: [("domain_expert",
+                 ["business_personal", "requirements_analyst", "architect", "developer", "tester"])],
+            4: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
+            5: [("domain_expert",
+                 ["business_personal", "requirements_analyst", "architect", "developer", "tester"])],
+            6: [("domain_expert", None), ("business_personal", "domain_expert"), ("architect", "domain_expert")],
+            7: [(
+                "domain_expert", ["business_personal", "requirements_analyst", "architect", "developer", "tester"])]
+        }
+        return round_config.get(round_num, [])
 
-        def _gather_inputs(self, sources: List[str]) -> Dict[str, str]:
-            """从指定角色收集上一轮输出"""
-            return {role: self.history[-1][role] for role in sources if role in self.history[-1]}
+    def _gather_inputs(self, sources: List[str]) -> Dict[str, str]:
+        """从指定角色收集上一轮输出"""
+        return {role: self.history[-1][role] for role in sources if role in self.history[-1]}
 
-        def _validate_round_output(self, round_num: int, outputs: Dict[str, str]) -> bool:
-            """执行轮次输出验证（示例）"""
-            if not self.validation:
-                return True
-
-            if round_num == 1:
-                return all("Agree" in output for output in outputs.values())
-            elif round_num == 3:
-                return any("Hotpots" in output for output in outputs.values())
+    def _validate_round_output(self, round_num: int, outputs: Dict[str, str]) -> bool:
+        """执行轮次输出验证（示例）"""
+        if not self.validation:
             return True
 
-        def run_event_storming(self) -> Tuple[Dict[str, List], List[Dict]]:
-            """执行完整的事件风暴流程"""
-            for round_num in range(1, self.max_round + 1):
-                print(f"\n=== Round {round_num} ===")
-                round_outputs = {}
+        if round_num == 1:
+            return all("Agree" in output for output in outputs.values())
+        elif round_num == 3:
+            return any("Hotpots" in output for output in outputs.values())
+        return True
 
-                for role, input_source in self._get_round_participants(round_num):
-                    agent = self.agents[role]
+    def run_event_storming(self) -> Tuple[Dict[str, List], List[Dict]]:
+        """执行完整的事件风暴流程"""
+        for round_num in range(1, self.max_round + 1):
+            print(f"\n=== Round {round_num} ===")
+            round_outputs = {}
 
-                    # 准备输入上下文
-                    context = self._gather_inputs(input_source) if isinstance(input_source, list) else (
-                        self.history[-1][input_source] if input_source else None
-                    )
+            for role, input_source in self._get_round_participants(round_num):
+                agent = self.agents[role]
 
-                    # 执行角色交互
-                    try:
-                        response = agent.participate_round(round_num, context)
-                        round_outputs[role] = response
-                        print(f"[{role[:10].ljust(10)}]: {response[:80]}...")
-                    except Exception as e:
-                        print(f"{role} 执行失败: {str(e)}")
-                        round_outputs[role] = f"ERROR: {str(e)}"
+                # 准备输入上下文
+                context = self._gather_inputs(input_source) if isinstance(input_source, list) else (
+                    self.history[-1][input_source] if input_source else None
+                )
 
-                # 验证并保存结果
-                if not self._validate_round_output(round_num, round_outputs):
-                    raise RuntimeError(f"Round {round_num} 验证失败")
-                self.history.append(round_outputs)
+                # 执行角色交互
+                try:
+                    response = agent.participate_round(round_num, context)
+                    round_outputs[role] = response
+                    print(f"[{role[:10].ljust(10)}]: {response[:80]}...")
+                except Exception as e:
+                    print(f"{role} 执行失败: {str(e)}")
+                    round_outputs[role] = f"ERROR: {str(e)}"
 
-            return self._compile_artifacts(), self.history
+            # 验证并保存结果
+            if not self._validate_round_output(round_num, round_outputs):
+                raise RuntimeError(f"Round {round_num} 验证失败")
+            self.history.append(round_outputs)
 
-        def _compile_artifacts(self) -> Dict[str, List]:
-            """编译最终建模产物"""
-            last_round = self.history[-1]
-            expert_output = last_round["domain_expert"]
+        return self._compile_artifacts(), self.history
 
-            return {
-                "domain_events": self._extract_structured_data(expert_output, "Domain Events"),
-                "commands": self._extract_structured_data(expert_output, "Commands"),
-                "policies": self._extract_structured_data(expert_output, "Policies"),
-                "hotspots": self._extract_structured_data(expert_output, "Hotpots"),
-                "test_cases": self.agents["tester"].test_cases,
-                "user_stories": self.agents["requirements_analyst"].user_stories
-            }
+    def _compile_artifacts(self) -> Dict[str, List]:
+        """编译最终建模产物"""
+        last_round = self.history[-1]
+        expert_output = last_round["domain_expert"]
 
-        def _extract_structured_data(self, text: str, section: str) -> List[Dict]:
-            """从文本输出中提取结构化数据"""
-            if section not in text:
-                return []
+        return {
+            "domain_events": self._extract_structured_data(expert_output, "Domain Events"),
+            "commands": self._extract_structured_data(expert_output, "Commands"),
+            "policies": self._extract_structured_data(expert_output, "Policies"),
+            "hotspots": self._extract_structured_data(expert_output, "Hotpots"),
+            "test_cases": self.agents["tester"].test_cases,
+            "user_stories": self.agents["requirements_analyst"].user_stories
+        }
 
-            items = []
-            section_text = text.split(section + ":")[1].split("\n\n")[0]
-            for line in section_text.split('\n'):
-                if line.strip() and not line.strip().startswith("..."):
-                    parts = line.split(':')
-                    if len(parts) > 1:
-                        items.append({
-                            "element": parts[0].strip(),
-                            "rationale": parts[1].strip()
-                        })
-            return items
+    def _extract_structured_data(self, text: str, section: str) -> List[Dict]:
+        """从文本输出中提取结构化数据"""
+        if section not in text:
+            return []
+
+        items = []
+        section_text = text.split(section + ":")[1].split("\n\n")[0]
+        for line in section_text.split('\n'):
+            if line.strip() and not line.strip().startswith("..."):
+                parts = line.split(':')
+                if len(parts) > 1:
+                    items.append({
+                        "element": parts[0].strip(),
+                        "rationale": parts[1].strip()
+                    })
+        return items
