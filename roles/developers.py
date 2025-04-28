@@ -1,6 +1,6 @@
-from prompts.developers import *
-from prompts.basic import *
-import EventStormingAgent
+from .prompts.developers import *
+from .prompts.basic import *
+from .EventStormingAgent import EventStormingAgent
 
 
 class Developer(EventStormingAgent):

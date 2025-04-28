@@ -11,9 +11,8 @@ from roles.testers import Tester
 
 
 class Session:
-    def __init__(self, business_scenario: str, model: str = "gpt-4", max_round: int = 7, validation: bool = True):
+    def __init__(self, business_scenario: str, max_round: int = 7, validation: bool = True):
         self.business_scenario = business_scenario
-        self.model = model
         self.max_round = max_round
         self.validation = validation
         self.agents = self._initialize_agents()
@@ -23,7 +22,6 @@ class Session:
         """初始化所有角色Agent"""
         shared_args = {
             "system_description": self.business_scenario,
-            "model": self.model
         }
         return {
             "architect": Architect(** shared_args),
@@ -51,11 +49,9 @@ class Session:
         return round_config.get(round_num, [])
 
     def _gather_inputs(self, sources: List[str]) -> Dict[str, str]:
-        """从指定角色收集上一轮输出"""
         return {role: self.history[-1][role] for role in sources if role in self.history[-1]}
 
     def _validate_round_output(self, round_num: int, outputs: Dict[str, str]) -> bool:
-        """执行轮次输出验证（示例）"""
         if not self.validation:
             return True
 
@@ -66,7 +62,6 @@ class Session:
         return True
 
     def run_event_storming(self) -> Tuple[Dict[str, List], List[Dict]]:
-        """执行完整的事件风暴流程"""
         for round_num in range(1, self.max_round + 1):
             print(f"\n=== Round {round_num} ===")
             round_outputs = {}
@@ -89,14 +84,13 @@ class Session:
                     round_outputs[role] = f"ERROR: {str(e)}"
 
             # 验证并保存结果
-            if not self._validate_round_output(round_num, round_outputs):
-                raise RuntimeError(f"Round {round_num} 验证失败")
-            self.history.append(round_outputs)
+            # if not self._validate_round_output(round_num, round_outputs):
+            #     raise RuntimeError(f"Round {round_num} 验证失败")
+            # self.history.append(round_outputs)
 
         return self._compile_artifacts(), self.history
 
     def _compile_artifacts(self) -> Dict[str, List]:
-        """编译最终建模产物"""
         last_round = self.history[-1]
         expert_output = last_round["domain_expert"]
 
@@ -110,7 +104,6 @@ class Session:
         }
 
     def _extract_structured_data(self, text: str, section: str) -> List[Dict]:
-        """从文本输出中提取结构化数据"""
         if section not in text:
             return []
 

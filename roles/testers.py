@@ -1,6 +1,6 @@
-from prompts.testers import *
-from prompts.basic import *
-import EventStormingAgent
+from .prompts.testers import *
+from .prompts.basic import *
+from .EventStormingAgent import EventStormingAgent
 
 
 class Tester(EventStormingAgent):

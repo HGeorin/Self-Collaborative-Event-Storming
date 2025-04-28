@@ -1,25 +1,2 @@
-{
-  "task_id": "ES-001",
-  "domain": "电商订单系统",
-  "business_goal": "实现从下单到履约的完整流程管理",
-  "scenarios": [
-    {
-      "name": "订单创建",
-      "description": "用户选择商品后生成待支付订单",
-      "actors": ["客户", "库存系统"],
-      "acceptance_criteria": [
-        "订单金额必须与商品总价一致",
-        "需要预留库存10分钟"
-      ]
-    },
-    {
-      "name": "订单履约",
-      "description": "支付完成后进入发货流程",
-      "actors": ["支付系统", "物流系统"],
-      "business_rules": [
-        "必须收到全额支付才能发货",
-        "需生成物流跟踪号"
-      ]
-    }
-  ]
-}
+{"task_id": "btms_001", "domain": "Transportation Management", "business_goal": "Simplify city's public bus system operations", "scenarios": ["Driver management with unique IDs", "Bus route assignment with max 9999 routes", "Shift scheduling with morning/afternoon/night shifts", "Sick leave and repair status tracking", "Daily overview with route assignments"]}
+{"task_id": "h2s_001", "domain": "Pickup and Delivery Service", "business_goal": "Increase donated items through pickup service", "scenarios": ["Resident pickup request submission", "Volunteer driver availability management", "Route planning based on vehicle capacity", "Article quality assessment at distribution center", "Special delivery for immobile clients"]}

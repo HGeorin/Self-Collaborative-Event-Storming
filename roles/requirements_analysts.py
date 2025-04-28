@@ -1,6 +1,6 @@
-from prompts.requirements_analysts import *
-from prompts.basic import *
-import EventStormingAgent
+from .prompts.requirements_analysts import *
+from .prompts.basic import *
+from .EventStormingAgent import EventStormingAgent
 
 
 class RequirementsAnalyst(EventStormingAgent):

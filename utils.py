@@ -6,9 +6,7 @@ import networkx as nx
 from matplotlib import pyplot as plt
 from plantuml import PlantUML
 import os
-import time
-import difflib
-import copy
+from typing import Dict, List
 
 
 def code_truncate_regex(code):

@@ -1,11 +1,11 @@
-from prompts.architects import *
-from prompts.basic import *
-import EventStormingAgent
+from .prompts.architects import *
+from .prompts.basic import *
+from .EventStormingAgent import EventStormingAgent
 
 
 class Architect(EventStormingAgent):
     def __init__(self, system_description: str):
-        super().__init__(role="architect", model="gpt-4")
+        super().__init__(role="architect")
         self.system_desc = SYSTEM_DESC.replace("xxxxx", system_description)
         self.round_handlers = {
             1: self._handle_round1,

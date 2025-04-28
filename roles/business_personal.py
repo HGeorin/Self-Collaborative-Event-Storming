@@ -1,6 +1,6 @@
-from prompts.business_personal import *
-from prompts.basic import *
-import EventStormingAgent
+from .prompts.business_personal import *
+from .prompts.basic import *
+from .EventStormingAgent import EventStormingAgent
 
 
 class BusinessPersonnel(EventStormingAgent):
@@ -29,10 +29,6 @@ class BusinessPersonnel(EventStormingAgent):
         {BP_ROLE}
 
         {BP_TASK_DESC}
-
-        请用简洁的商业语言描述本次建模的核心业务目标（不超过200字）。
-        示例格式：
-        "本次业务目标是实现[XX业务场景]下的[YY关键指标]，主要涉及[ZZ业务流程]的优化。"
         """
         response = self.generate_response(prompt)
         self.add_to_history("business_personal", response)

@@ -1,6 +1,6 @@
-from prompts.domain_experts import *
-from prompts.basic import *
-import EventStormingAgent
+from .prompts.domain_experts import *
+from .prompts.basic import *
+from .EventStormingAgent import EventStormingAgent
 from typing import Dict, List
 
 

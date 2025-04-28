@@ -1,0 +1,7 @@
+# config.yaml
+# 本config模板，请根据开发环境新建config_xxx.yaml，并将其加入.gitignore
+llm:
+  api_key: "sk-xxx"  # 默认API密钥（建议用环境变量覆盖）
+  api_base: "https://api.openai.com/v1"
+  model: "gpt-3.5-turbo"  # 默认模型
+  timeout: 30  # 请求超时(秒)

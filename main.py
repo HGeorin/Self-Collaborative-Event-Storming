@@ -1,120 +1,88 @@
 import json
 import argparse
-
+from pathlib import Path
+from typing import Generator, Dict, Any
 from session_es import Session
-from utils import generate_uml_diagram
 
-parser = argparse.ArgumentParser(description='EventStorming协作建模框架')
-parser.add_argument('--input_file', type=str, default='data/input.jsonl',
-                   help='输入文件路径（JSONL格式）')
-parser.add_argument('--output_path', type=str, default='eventstorming_output.jsonl',
-                   help='建模结果输出路径')
-parser.add_argument('--model', type=str, default='gpt-4',
-                   choices=['gpt-4', 'gpt-3.5-turbo'],
-                   help='使用的LLM模型')
-parser.add_argument('--max_round', type=int, default=3,
-                   help='每阶段最大协作轮次')
-parser.add_argument('--validation', action='store_true', default=False,
-                   help='启用模型验证阶段')
-args = parser.parse_args()
+
+class EventStormingRunner:
+
+    def __init__(self):
+        self.args = self._parse_args()
+        self._validate_paths()
+
+    def _parse_args(self) -> argparse.Namespace:
+        parser = argparse.ArgumentParser(description='事件风暴协作建模框架')
+        parser.add_argument('--input_file', type=str, default='data/input.jsonl',
+                            help='输入文件路径（JSONL格式）')
+        parser.add_argument('--output_path', type=str, default='output/artifacts.json',
+                            help='建模产物输出路径')
+        parser.add_argument('--max_round', type=int, default=7,
+                            help='最大协作轮次（匹配Session默认值）')
+        parser.add_argument('--disable_validation', action='store_true',
+                            help='禁用模型验证阶段')
+        return parser.parse_args()
+
+    def _validate_paths(self) -> None:
+        if not Path(self.args.input_file).exists():
+            raise FileNotFoundError(f"输入文件不存在: {self.args.input_file}")
+        Path(self.args.output_path).parent.mkdir(parents=True, exist_ok=True)
+
+    def _load_tasks(self) -> Generator[Dict[str, Any], None, None]:
+        with open(self.args.input_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError as e:
+                    print(f"JSON解析错误: {str(e)}")
+                    continue
+
+    def _format_output(self, task: Dict, artifacts: Dict) -> Dict[str, Any]:
+        return {
+            "task_id": task.get("task_id"),
+            "domain": task.get("domain"),
+            "artifacts": {
+                "domain_events": artifacts["domain_events"],
+                "commands": artifacts["commands"],
+                "policies": artifacts["policies"],
+                "hotspots": artifacts["hotspots"],
+                "test_cases": artifacts["test_cases"],
+                "user_stories": artifacts["user_stories"]
+            },
+            "validation_status": not self.args.disable_validation
+        }
+
+    def run(self) -> None:
+        for task in self._load_tasks():
+            try:
+                # 构造session_es需要的业务场景字符串
+                business_scenario = (
+                        f"Domain: {task['domain']}\n"
+                        f"Business Goal: {task['business_goal']}\n"
+                        f"Scenarios:\n- " + "\n- ".join(task['scenarios'])
+                )
+
+                # 初始化Session（完全匹配你的构造函数）
+                session = Session(
+                    business_scenario=business_scenario,
+                    max_round=self.args.max_round,
+                    validation=not self.args.disable_validation
+                )
+
+                # 运行事件风暴（匹配你的返回结构）
+                artifacts, _ = session.run_event_storming()
+
+                # 保存结果
+                output = self._format_output(task, artifacts)
+                with open(self.args.output_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(output, ensure_ascii=False) + '\n')
+
+                print(f"任务 {task.get('task_id')} 处理完成")
+
+            except Exception as e:
+                print(f"任务处理失败: {str(e)}")
+                continue
 
 
 if __name__ == '__main__':
-
-    def load_custom_dataset(file_path):
-        with open(file_path, 'r') as f:
-            for line in f:
-                yield json.loads(line)
-
-
-    with open(args.output_path, 'w') as f_out:
-        # 处理每个建模任务
-        for task in load_custom_dataset(args.input_file):
-            try:
-                # 输入解析改造
-                domain_info = {
-                    'domain': task['domain'],
-                    'business_goal': task['business_goal'],
-                    'user_scenarios': task['scenarios']
-                }
-
-                # 初始化建模会话
-                session = Session(
-                    business_scenario = domain_info,
-                    model=args.model,
-                    max_round=args.max_round,
-                    validation=args.validation
-                )
-
-                # 运行协作建模流程
-                model_artifacts, history = session.run_event_storming()
-
-                # 构造输出结构
-                output = {
-                    "task_id": task["task_id"],
-                    "domain": task["domain"],
-                    "identified_events": model_artifacts['events'],
-                    "aggregates": model_artifacts['aggregates'],
-                    "process_flows": model_artifacts['process_flows'],
-                    "validation_report": model_artifacts.get('validation', {}),
-                    "model_visualization": generate_uml_diagram(model_artifacts)  # 新增可视化生成
-                }
-
-                f_out.write(json.dumps(output) + '\n')
-                f_out.flush()
-
-            except Exception as e:
-                print(f"任务 {task['task_id']} 处理失败: {str(e)}")
-                continue
-
-    from roles.rule_descriptions_actc import TEAM, ANALYST, PYTHON_DEVELOPER, TESTER
-
-    # OUTPUT_PATH = args.output_path
-
-    # load dataset
-    # if args.dataset == 'humaneval':
-    #     if args.lang == 'python':
-    #         dataset = load_dataset("openai_humaneval")
-    #         dataset_key = ["test"]
-    #
-    # with open(OUTPUT_PATH, 'w+') as f:
-    #     for key in dataset_key:
-    #         pbar = tqdm.tqdm(dataset[key], total=len(dataset[key]))
-    #         for idx, task in enumerate(pbar):
-    #
-    #             if args.dataset == 'humaneval':
-    #                 method_name = task['entry_point']
-    #                 before_func, signature, intent, public_test_case = prompt_split_humaneval(task['prompt'],method_name)
-    #                 args.signature = True
-    #                 if args.signature:
-    #                     intent = task['prompt']
-    #
-    #                 test = task['test']
-    #
-    #             try:
-    #                 session = Session(TEAM, ANALYST, PYTHON_DEVELOPER, TESTER,requirement=intent, model=args.model, majority=args.majority,
-    #                                 max_tokens=args.max_tokens, temperature=args.temperature,
-    #                                 top_p=args.top_p, max_round=args.max_round, before_func=before_func)
-    #
-    #                 code, session_history = session.run_session()
-    #
-    #             except RuntimeError as e:
-    #                 print(str(e))
-    #                 print("task-%d fail"%(task['task_id']))
-    #                 fail_list.append(task['task_id'])
-    #                 continue
-    #
-    #             if  code == "error":
-    #                 continue
-    #
-    #             entry_point = find_method_name(code)
-    #             solution = {
-    #                 'task_id': task['task_id'],
-    #                 'prompt': before_func+"\n",
-    #                 'test': test,
-    #                 'entry_point': entry_point,
-    #                 'completion': code,
-    #                 'session_history': session_history,
-    #             }
-    #             f.write(json.dumps(solution) + '\n')
-    #             f.flush()
+    EventStormingRunner().run()
