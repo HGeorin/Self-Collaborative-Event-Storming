@@ -1,3 +1,4 @@
+from typing import Dict
 from .prompts.testers import *
 from .prompts.basic import *
 from .EventStormingAgent import EventStormingAgent
@@ -7,7 +8,7 @@ class Tester(EventStormingAgent):
     def __init__(self, system_description: str):
         super().__init__("tester")
         self.system_desc = SYSTEM_DESC.replace("xxxxx", system_description)
-        self.round_handlers = {
+        self.round_handlers: Dict[int, callable] = {
             1: self._handle_round1,
             2: self._handle_round2,
             4: self._handle_round4,

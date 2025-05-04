@@ -1,3 +1,4 @@
+from typing import Dict
 from .prompts.requirements_analysts import *
 from .prompts.basic import *
 from .EventStormingAgent import EventStormingAgent
@@ -7,7 +8,7 @@ class RequirementsAnalyst(EventStormingAgent):
     def __init__(self, system_description: str):
         super().__init__("requirements_analyst")
         self.system_desc = SYSTEM_DESC.replace("xxxxx", system_description)
-        self.round_handlers = {
+        self.round_handlers: Dict[int, callable] = {
             1: self._handle_round1,
             2: self._handle_round2,
             4: self._handle_round4,

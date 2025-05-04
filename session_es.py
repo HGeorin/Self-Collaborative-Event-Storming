@@ -83,10 +83,6 @@ class Session:
                     print(f"{role} 执行失败: {str(e)}")
                     round_outputs[role] = f"ERROR: {str(e)}"
 
-            # 验证并保存结果
-            # if not self._validate_round_output(round_num, round_outputs):
-            #     raise RuntimeError(f"Round {round_num} 验证失败")
-            # self.history.append(round_outputs)
 
         return self._compile_artifacts(), self.history
 

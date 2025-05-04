@@ -1,13 +1,16 @@
 from .prompts.domain_experts import *
 from .prompts.basic import *
 from .EventStormingAgent import EventStormingAgent
-from typing import Dict, List
+from typing import Dict
 
 
 class DomainExpert(EventStormingAgent):
     def __init__(self, system_description: str):
         super().__init__("domain_expert")
+        # 初始化系统消息
         self.system_desc = SYSTEM_DESC.replace("xxxxx", system_description)
+        self._initialize_conversation(self.system_desc)
+
         self.round_handlers = {
             1: self._handle_round1,
             2: self._handle_round2,
@@ -15,43 +18,37 @@ class DomainExpert(EventStormingAgent):
             5: self._handle_round5,
             7: self._handle_round7
         }
-        self.decision_log = []  # 记录所有仲裁决策
+        self.decision_log = []
 
     def participate_round(self, round_num: int, context: Dict[str, str] = None) -> str:
         """处理领域专家在不同轮次的权威交互"""
         if round_num not in self.round_handlers:
             raise ValueError(f"Domain expert does not participate in round {round_num}")
+
+        # 添加轮次标记到对话历史
+        self.add_to_history("system", f"Entering round {round_num} discussion")
         return self.round_handlers[round_num](context)
 
     def _handle_round1(self, business_report: str) -> str:
         """第一轮：评审业务目标"""
-        prompt = f"""
+        system_message = f"""
         {TEAM_DESC}
-        {self.system_desc}
         {DE_ROLE}
+        """
 
+        prompt = f"""
         {DE_TASK_DESC}
 
-        请以领域专家身份评估以下业务目标：
+        here is the business objective report:
         {business_report}
-
-        检查要点：
-        1. 是否符合行业惯例
-        2. 是否存在业务逻辑矛盾
-        3. 术语使用是否准确
-
-        输出格式：
-        [问题列表] 或 "Agree to proceed with event storming"
         """
-        response = self.generate_response(prompt)
-        self.add_to_history("domain_expert", response)
+        response = self.generate_response(prompt, system_message)
         return response
 
     def _handle_round2(self, _: str = None) -> str:
         """第二轮：确定核心领域事件"""
         prompt = f"""
         {TEAM_DESC}
-        {self.system_desc}
         {DE_ROLE}
 
         {DE_TASK_ROUND2}
@@ -67,7 +64,6 @@ class DomainExpert(EventStormingAgent):
         {DE_FORMAT_ROUND2}
         """
         response = self.generate_response(prompt)
-        self.add_to_history("domain_expert", response)
         return response
 
     def _handle_round3(self, team_inputs: Dict[str, str]) -> str:
@@ -76,7 +72,6 @@ class DomainExpert(EventStormingAgent):
 
         prompt = f"""
         {TEAM_DESC}
-        {self.system_desc}
         {DE_ROLE}
 
         各角色提交的领域事件：
@@ -95,8 +90,7 @@ class DomainExpert(EventStormingAgent):
         {DE_FORMAT_ROUND3}
         """
         response = self.generate_response(prompt)
-        self._log_decisions(team_inputs, response)  # 记录仲裁过程
-        self.add_to_history("domain_expert", response)
+        self._log_decisions(team_inputs, response)
         return response
 
     def _handle_round5(self, team_inputs: Dict[str, str]) -> str:
@@ -105,7 +99,6 @@ class DomainExpert(EventStormingAgent):
 
         prompt = f"""
         {TEAM_DESC}
-        {self.system_desc}
         {DE_ROLE}
 
         各角色提交的命令和实体：
@@ -124,7 +117,6 @@ class DomainExpert(EventStormingAgent):
         {DE_FORMAT_ROUND5}
         """
         response = self.generate_response(prompt)
-        self.add_to_history("domain_expert", response)
         return response
 
     def _handle_round7(self, team_inputs: Dict[str, str]) -> str:
@@ -133,7 +125,6 @@ class DomainExpert(EventStormingAgent):
 
         prompt = f"""
         {TEAM_DESC}
-        {self.system_desc}
         {DE_ROLE}
 
         各角色提交的策略：
@@ -152,7 +143,6 @@ class DomainExpert(EventStormingAgent):
         {DE_FORMAT_ROUND7}
         """
         response = self.generate_response(prompt)
-        self.add_to_history("domain_expert", response)
         return response
 
     def _log_decisions(self, inputs: Dict[str, str], output: str) -> None:
