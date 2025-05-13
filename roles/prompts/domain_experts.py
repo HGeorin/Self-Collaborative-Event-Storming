@@ -4,7 +4,6 @@ During the event storming process, you need to leverage your deep business exper
 '''
 
 DE_TASK_DESC = '''First, you will receive a business objective report from the business personnel.
-If you have questions about the report, output your questions.
 If there are no questions, output "Agree to proceed with event storming."
 '''
 

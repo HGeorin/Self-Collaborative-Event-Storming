@@ -33,7 +33,7 @@ class EventStormingAgent:
             "role": api_role,
             "content": message
         })
-        self.logger.debug(f"Added to history - {speaker}: {message[:100]}...")
+        self.logger.debug(f"Added to history - {speaker}: {message}")
 
     def generate_response(self, prompt: str, system_message: Optional[str] = None) -> str:
         """生成响应，支持多轮对话"""

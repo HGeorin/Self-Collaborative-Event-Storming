@@ -3,15 +3,16 @@ BP_ROLE = '''You are a business personnel.
 During the Event Storming process, you need to provide real business processes and rules based on actual business scenarios to ensure the system design aligns with business goals and operational needs.
 '''
 
-BP_TASK_DESC = '''First, you need to introduce the business objectives of this Event Storming session to the team.
-Then, you will receive reports from other members.
-If the reports contain questions about the business objectives, you need to provide corresponding explanations.
-If all reports indicate "Agree to start Event Storming," then output "Event Storming begins."
+BP_TASK_DESC_1 = '''First, you need to introduce the business objectives of this Event Storming session to the team.
 '''
 
+BP_TASK_DESC_2 = '''you will receive reports from other members.
+If the reports contain questions about the business objectives, you need to provide corresponding explanations.
+If all reports indicate "Agree to start Event Storming," then output "Event Storming begins."'''
+
 # Round 2
-BP_TASK_ROUND2 = '''The most critical domain event in the current system is "xxxx".
-Based on this, you need to follow the Guidelines and provide other domain events that occur before and after "xxxx".
+BP_TASK_ROUND2 = '''Domain expert will give the most critical domain event in the current system.
+Based on this, you need to follow the Guidelines and provide other domain events that occur before and after this "most critical" domain event.
 The output must adhere to the specified Format.
 '''
 

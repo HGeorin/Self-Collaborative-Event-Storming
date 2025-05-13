@@ -22,65 +22,56 @@ class Architect(EventStormingAgent):
         return self.round_handlers[round_num](context)
 
     def _handle_round1(self, business_report: str) -> str:
-        prompt = f"""
+        system_message = f"""
         {TEAM_DESC}
-        {self.system_desc}
         {ARCH_ROLE}
-        {ARCH_TASK_DESC}
-        Business Report Received:
-        {business_report}
-        Output your questions OR "Agree to start Event Storming".
         """
-        response = self.generate_response(prompt)
-        self.add_to_history("architect", response)
+        prompt = f"""
+        {ARCH_TASK_DESC}
+        this is the business report:
+        {business_report}
+        """
+        response = self.generate_response(prompt, system_message)
         return response
 
-    def _handle_round2(self, critical_event: str) -> str:
+    def _handle_round2(self, de_response: str) -> str:
         prompt = f"""
-        {TEAM_DESC}
-        {self.system_desc}
-        {ARCH_ROLE}
         Current Task:
-        {ARCH_TASK_ROUND2.replace('xxxx', critical_event)}
+        {ARCH_TASK_ROUND2}
+        Here is what domain expert says:
+        {de_response}
         Guidelines:
         {ARCH_GUIDELINES_ROUND2}
         Required Format:
         {ARCH_FORMAT_ROUND2}
         """
         response = self.generate_response(prompt)
-        self.add_to_history("architect", response)
         return response
 
-    def _handle_round4(self, event_flow: str) -> str:
+    def _handle_round4(self, de_response: str) -> str:
         prompt = f"""
-        {TEAM_DESC}
-        {self.system_desc}
-        {ARCH_ROLE}
         Current Task:
-        {ARCH_TASK_ROUND4.replace('1.A, 2.B, ...', event_flow)}
+        {ARCH_TASK_ROUND4}
+        Here is what domain expert says:
+        {de_response}
         Guidelines:
         {ARCH_GUIDELINES_ROUND4}
         Required Format:
         {ARCH_FORMAT_ROUND4}
         """
         response = self.generate_response(prompt)
-        self.add_to_history("architect", response)
         return response
 
-    def _handle_round6(self, domain_model: str) -> str:
+    def _handle_round6(self, de_response: str) -> str:
         prompt = f"""
-        {TEAM_DESC}
-        {self.system_desc}
-        {ARCH_ROLE}
         Current Task:
         {ARCH_TASK_ROUND6}
-        Current Domain Model:
-        {domain_model}
+        Here is what domain expert says:
+        {de_response}
         Guidelines:
         {ARCH_GUIDELINES_ROUND6}
         Required Format:
         {ARCH_FORMAT_ROUND6}
         """
         response = self.generate_response(prompt)
-        self.add_to_history("architect", response)
         return response

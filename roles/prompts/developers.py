@@ -4,13 +4,12 @@ During the Event Storming process, you need to understand the business logic and
 '''
 
 DEV_TASK_DESC = '''You will receive a business objective report from the business personnel.
-If you have questions about the report, output your questions.
 If you have no questions, output "Agree to start Event Storming."
 '''
 
 # Round 2
-DEV_TASK_ROUND2 = '''The most critical domain event in the current system is "xxxx".
-Based on this, you need to follow the Guidelines and provide other domain events that occur before and after "xxxx".
+DEV_TASK_ROUND2 = '''Domain expert will give the most critical domain event in the current system.
+Based on this, you need to follow the Guidelines and provide other domain events that occur before and after this "most critical" domain event.
 The output must adhere to the specified Format.
 '''
 

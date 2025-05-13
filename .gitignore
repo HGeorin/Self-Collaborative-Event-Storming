@@ -1,3 +1,6 @@
 /.idea
 /config/config_prod.yaml
 /logs/
+/data/user/
+/test/
+/graph/

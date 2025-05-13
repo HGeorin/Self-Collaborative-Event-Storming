@@ -3,13 +3,12 @@ ARCH_ROLE = '''You are an architect.
 During the Event Storming process, you need to identify technical boundaries and ensure the domain model efficiently supports business requirements.'''
 
 ARCH_TASK_DESC = '''You will receive a business goal report from business personnel.
-If you have questions about the report, output your questions.
 If there are no questions, output "Agree to start Event Storming."
 '''
 
 # Round 2 (领域专家先行)
-ARCH_TASK_ROUND2 = '''The most critical domain event in the current system is "xxxx".
-Based on this, you need to follow the Guidelines and provide other domain events that occur before and after "xxxx".
+ARCH_TASK_ROUND2 = '''Domain expert will give the most critical domain event in the current system.
+Based on this, you need to follow the Guidelines and provide other domain events that occur before and after this "most critical" domain event.
 The output must adhere to the specified Format.
 '''
 
